@@ -1,0 +1,124 @@
+name: Deploy Code to Client Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: 'Enter a commit message for this deployment'
+        required: true
+        default: ''
+jobs:
+  safe-sync-to-client:
+    environment: manual-trigger-workflow-enviroment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    env:
+      TEAM_REPO_OWNER: ${{ github.repository_owner }}
+      TEAM_REPO_NAME: ${{ github.event.repository.name }}
+      TEAM_REPO_BRANCH: ${{ github.ref_name }}
+
+      AUTHORIZED_USERS_TO_RUN_WORKFLOW: ${{ secrets.AUTHORIZED_USERS_TO_RUN_WORKFLOW }}
+      TEAM_REPO_OWNER_PAT: ${{ secrets.TEAM_REPO_OWNER_PAT }}
+      CLIENT_REPO_COLLABORATOR_USER_NAME: ${{ secrets.CLIENT_REPO_COLLABORATOR_USER_NAME }}
+      CLIENT_REPO_COLLABORATOR_USER_EMAIL: ${{ secrets.CLIENT_REPO_COLLABORATOR_USER_EMAIL }}
+      CLIENT_REPO_COLLABORATOR_PAT: ${{ secrets.CLIENT_REPO_COLLABORATOR_PAT }}
+      CLIENT_REPO_OWNER: ${{ secrets.CLIENT_REPO_OWNER }}
+      CLIENT_REPO_NAME: ${{ secrets.CLIENT_REPO_NAME }}
+      CLIENT_REPO_BRANCH: ${{ secrets.CLIENT_REPO_BRANCH }}
+
+    steps:
+      - name: Get current user and repository owner
+        id: user_info
+        run: |
+          echo "current_user=${{ github.actor }}" >> $GITHUB_OUTPUT
+          echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
+
+          echo "AUTHORIZED_USERS_TO_RUN_WORKFLOW=${{ secrets.AUTHORIZED_USERS_TO_RUN_WORKFLOW }}">>
+          echo "TEAM_REPO_OWNER_PAT=${{ secrets.TEAM_REPO_OWNER_PAT }}">>
+          echo "CLIENT_REPO_COLLABORATOR_USER_NAME=${{ secrets.CLIENT_REPO_COLLABORATOR_USER_NAME }}">>
+          echo "CLIENT_REPO_COLLABORATOR_USER_EMAIL=${{ secrets.CLIENT_REPO_COLLABORATOR_USER_EMAIL }}">>
+          echo "CLIENT_REPO_COLLABORATOR_PAT=${{ secrets.CLIENT_REPO_COLLABORATOR_PAT }}">>
+          echo "CLIENT_REPO_OWNER=${{ secrets.CLIENT_REPO_OWNER }}">>
+          echo "CLIENT_REPO_NAME=${{ secrets.CLIENT_REPO_NAME }}">>
+          echo "CLIENT_REPO_BRANCH=${{ secrets.CLIENT_REPO_BRANCH }}">>
+
+      - name: Validate Authorized User
+        run: |
+          echo "Checking authorization..."
+          CURRENT_USER="${{ steps.user_info.outputs.current_user }}"
+          AUTHORIZED_USERS="$AUTHORIZED_USERS_TO_RUN_WORKFLOW"
+          REPO_OWNER="${{ steps.user_info.outputs.repo_owner }}"
+
+          echo "Current User: $CURRENT_USER"
+          echo "Repository Owner: $REPO_OWNER"
+
+          # Check if current user is in authorized users list
+          if [[ ",$AUTHORIZED_USERS," == *",$CURRENT_USER,"* ]]; then
+            echo "User '$CURRENT_USER' is authorized"
+          # Check if current user is the repository owner
+          elif [[ "$CURRENT_USER" == "$REPO_OWNER" ]]; then
+            echo "User '$CURRENT_USER' is the repository owner"
+          else
+            echo "❌ ERROR: Unauthorized user '$CURRENT_USER' attempted to run this workflow"
+            echo "Authorized users: $AUTHORIZED_USERS_TO_RUN_WORKFLOW"
+            echo "Repository owner: $REPO_OWNER"
+            echo "Please contact an admin to deploy the code."
+            exit 1
+          fi
+
+      - name: Checkout ${{ env.TEAM_REPO_NAME }} code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+          ref: ${{ env.TEAM_REPO_BRANCH }}
+          token: ${{ env.TEAM_REPO_OWNER_PAT }} # ✅ Use a PAT with access to team repo
+
+      - name: Setup Git Identity
+        run: |
+          git config --global user.name "$CLIENT_REPO_COLLABORATOR_USER_NAME"
+          git config --global user.email "$CLIENT_REPO_COLLABORATOR_USER_EMAIL"
+
+      - name: Validate Required Environment Variables
+        run: |
+          if [ -z "$CLIENT_REPO_OWNER" ] || [ -z "$CLIENT_REPO_NAME" ]; then
+            echo "❌ ERROR: CLIENT_REPO_OWNER and CLIENT_REPO_NAME must be set as repository variables or secrets"
+            echo "Please go to your repository Settings > Secrets and variables > Actions"
+            echo "And add CLIENT_REPO_OWNER and CLIENT_REPO_NAME as repository variables"
+            exit 1
+          fi
+
+      - name: Clone ${{ env.CLIENT_REPO_NAME }} repository and sync code
+        run: |
+          echo "🔐 Cloning $CLIENT_REPO_NAME repository..."
+          git clone https://x-access-token:${CLIENT_REPO_COLLABORATOR_PAT}@github.com/${CLIENT_REPO_OWNER}/${CLIENT_REPO_NAME}.git client-repo
+          cd client-repo
+          git checkout $CLIENT_REPO_BRANCH || git checkout -b $CLIENT_REPO_BRANCH
+
+          echo "🔄 Syncing files (clean copy)..."
+          # Remove everything except .git
+          find . -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
+          
+          # Copy from team repo (with exclusions)
+          rsync -av --progress \
+            --exclude .git \
+            --exclude '.github/' \
+            --exclude 'node_modules/' \
+            --exclude '.env' \
+            --exclude '.vscode/' \
+            --exclude '*.test.*' \
+            --exclude 'menu/' \
+            ../. .
+
+          echo "📦 Checking for changes..."
+          git add -A
+          if git diff --cached --quiet; then
+            echo "✅ No changes detected"
+            exit 0
+          fi
+
+          echo "🚀 Pushing to client repo..."
+          git commit -m "${{ github.event.inputs.commit_message || 'Sync from team repository' }}"
+          git push origin $CLIENT_REPO_BRANCH
+          echo "🎉 Successfully synced!"
