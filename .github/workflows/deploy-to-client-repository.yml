@@ -34,15 +34,6 @@ jobs:
           echo "current_user=${{ github.actor }}" >> $GITHUB_OUTPUT
           echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
 
-          echo "AUTHORIZED_USERS_TO_RUN_WORKFLOW=${{ secrets.AUTHORIZED_USERS_TO_RUN_WORKFLOW }}">>
-          echo "TEAM_REPO_OWNER_PAT=${{ secrets.TEAM_REPO_OWNER_PAT }}">>
-          echo "CLIENT_REPO_COLLABORATOR_USER_NAME=${{ secrets.CLIENT_REPO_COLLABORATOR_USER_NAME }}">>
-          echo "CLIENT_REPO_COLLABORATOR_USER_EMAIL=${{ secrets.CLIENT_REPO_COLLABORATOR_USER_EMAIL }}">>
-          echo "CLIENT_REPO_COLLABORATOR_PAT=${{ secrets.CLIENT_REPO_COLLABORATOR_PAT }}">>
-          echo "CLIENT_REPO_OWNER=${{ secrets.CLIENT_REPO_OWNER }}">>
-          echo "CLIENT_REPO_NAME=${{ secrets.CLIENT_REPO_NAME }}">>
-          echo "CLIENT_REPO_BRANCH=${{ secrets.CLIENT_REPO_BRANCH }}">>
-
       - name: Validate Authorized User
         run: |
           echo "Checking authorization..."
@@ -88,6 +79,33 @@ jobs:
             echo "And add CLIENT_REPO_OWNER and CLIENT_REPO_NAME as repository variables"
             exit 1
           fi
+
+      - name: Log environment variables (safe)
+        run: |
+          vars=(
+            TEAM_REPO_OWNER
+            TEAM_REPO_NAME
+            TEAM_REPO_BRANCH
+            AUTHORIZED_USERS_TO_RUN_WORKFLOW
+            TEAM_REPO_OWNER_PAT
+            CLIENT_REPO_COLLABORATOR_USER_NAME
+            CLIENT_REPO_COLLABORATOR_USER_EMAIL
+            CLIENT_REPO_COLLABORATOR_PAT
+            CLIENT_REPO_OWNER
+            CLIENT_REPO_NAME
+            CLIENT_REPO_BRANCH
+          )
+          echo "=== Environment variables status ==="
+          for v in "${vars[@]}"; do
+            val="${!v}"
+            if [ -z "$val" ]; then
+              echo "$v: NOT SET"
+            else
+              # do not print secret values — only show that they exist
+              echo "$v: SET"
+            fi
+          done
+          echo "===================================="
 
       - name: Clone ${{ env.CLIENT_REPO_NAME }} repository and sync code
         run: |
