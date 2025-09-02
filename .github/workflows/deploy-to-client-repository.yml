@@ -60,7 +60,7 @@ jobs:
 
       - name: show TEAM_PAT length (masked)
         run: |
-          if [ -z "${{ secrets.TEAM_REPO_OWNER_PAT }}" ]; then
+          if [ -z "${{ env.TEAM_REPO_OWNER_PAT }}" ]; then
             echo "TEAM_REPO_OWNER_PAT: NOT SET"
           else
             # print length of token (not the token itself)
@@ -74,7 +74,7 @@ jobs:
           persist-credentials: true
           fetch-depth: 0
           ref: ${{ env.TEAM_REPO_BRANCH }}
-          token: ${{ env.TEAM_REPO_OWNER_PAT }} # ✅ Use a PAT with access to team repo
+          token: ${{ secrets.TEAM_REPO_OWNER_PAT }} # ✅ Use a PAT with access to team repo
 
       - name: Setup Git Identity
         run: |
