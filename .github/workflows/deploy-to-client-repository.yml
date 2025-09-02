@@ -60,11 +60,11 @@ jobs:
 
       - name: show TEAM_PAT length (masked)
         run: |
-          if [ -z "${{ env.TEAM_REPO_OWNER_PAT }}" ]; then
+          if [ -z "${{ github.ref_name }}" ]; then
             echo "TEAM_REPO_OWNER_PAT: NOT SET"
           else
             # print length of token (not the token itself)
-            len=$(printf "%s" "${{ secrets.TEAM_REPO_OWNER_PAT }}" | wc -c)
+            len=$(printf "%s" "${{ github.ref_name }}" | wc -c)
             echo "TEAM_REPO_OWNER_PAT length: $len"
           fi
 
