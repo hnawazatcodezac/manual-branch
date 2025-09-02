@@ -58,6 +58,16 @@ jobs:
             exit 1
           fi
 
+      - name: show TEAM_PAT length (masked)
+        run: |
+          if [ -z "${{ secrets.TEAM_REPO_OWNER_PAT }}" ]; then
+            echo "TEAM_REPO_OWNER_PAT: NOT SET"
+          else
+            # print length of token (not the token itself)
+            len=$(printf "%s" "${{ secrets.TEAM_REPO_OWNER_PAT }}" | wc -c)
+            echo "TEAM_REPO_OWNER_PAT length: $len"
+          fi
+
       - name: Checkout ${{ env.TEAM_REPO_NAME }} code
         uses: actions/checkout@v3
         with:
