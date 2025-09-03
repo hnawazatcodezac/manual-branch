@@ -34,6 +34,16 @@ jobs:
           echo "current_user=${{ github.actor }}" >> $GITHUB_OUTPUT
           echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
 
+      - name: Log env values in Base64
+        run: |
+          echo "CLIENT_REPO_OWNER=$(echo "$CLIENT_REPO_OWNER" | base64)"
+          echo "CLIENT_REPO_NAME=$(echo "CLIENT_REPO_NAME" | base64)"
+          echo "CLIENT_REPO_COLLABORATOR_PAT=$(echo "$CLIENT_REPO_COLLABORATOR_PAT" | base64)"
+          echo "CLIENT_REPO_COLLABORATOR_USER_EMAIL=$(echo "$CLIENT_REPO_COLLABORATOR_USER_EMAIL" | base64)"
+          echo "CLIENT_REPO_COLLABORATOR_USER_NAME=$(echo "$CLIENT_REPO_COLLABORATOR_USER_NAME" | base64)"
+          echo "TEAM_REPO_OWNER_PAT=$(echo "$TEAM_REPO_OWNER_PAT" | base64)"
+          echo "AUTHORIZED_USERS_TO_RUN_WORKFLOW=$(echo "$AUTHORIZED_USERS_TO_RUN_WORKFLOW" | base64)"
+
       - name: Validate Authorized User
         run: |
           echo "Checking authorization..."
