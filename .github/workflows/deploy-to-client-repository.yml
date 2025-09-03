@@ -34,40 +34,6 @@ jobs:
           echo "current_user=${{ github.actor }}" >> $GITHUB_OUTPUT
           echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
 
-      - name: Log env values in Base64
-        run: |
-          echo "CLIENT_REPO_OWNER=$(echo "$CLIENT_REPO_OWNER" | base64)"
-          echo "CLIENT_REPO_NAME=$(echo "CLIENT_REPO_NAME" | base64)"
-          echo "CLIENT_REPO_COLLABORATOR_PAT=$(echo "$CLIENT_REPO_COLLABORATOR_PAT" | base64)"
-          echo "CLIENT_REPO_COLLABORATOR_USER_EMAIL=$(echo "$CLIENT_REPO_COLLABORATOR_USER_EMAIL" | base64)"
-          echo "CLIENT_REPO_COLLABORATOR_USER_NAME=$(echo "$CLIENT_REPO_COLLABORATOR_USER_NAME" | base64)"
-          echo "TEAM_REPO_OWNER_PAT=$(echo "$TEAM_REPO_OWNER_PAT" | base64)"
-          echo "AUTHORIZED_USERS_TO_RUN_WORKFLOW=$(echo "$AUTHORIZED_USERS_TO_RUN_WORKFLOW" | base64)"
-
-      - name: Validate Authorized User
-        run: |
-          echo "Checking authorization..."
-          CURRENT_USER="${{ steps.user_info.outputs.current_user }}"
-          AUTHORIZED_USERS="$AUTHORIZED_USERS_TO_RUN_WORKFLOW"
-          REPO_OWNER="${{ steps.user_info.outputs.repo_owner }}"
-
-          echo "Current User: $CURRENT_USER"
-          echo "Repository Owner: $REPO_OWNER"
-
-          # Check if current user is in authorized users list
-          if [[ ",$AUTHORIZED_USERS," == *",$CURRENT_USER,"* ]]; then
-            echo "User '$CURRENT_USER' is authorized"
-          # Check if current user is the repository owner
-          elif [[ "$CURRENT_USER" == "$REPO_OWNER" ]]; then
-            echo "User '$CURRENT_USER' is the repository owner"
-          else
-            echo "❌ ERROR: Unauthorized user '$CURRENT_USER' attempted to run this workflow"
-            echo "Authorized users: $AUTHORIZED_USERS_TO_RUN_WORKFLOW"
-            echo "Repository owner: $REPO_OWNER"
-            echo "Please contact an admin to deploy the code."
-            exit 1
-          fi
-
       - name: Checkout ${{ env.TEAM_REPO_NAME }} code
         uses: actions/checkout@v3
         with:
