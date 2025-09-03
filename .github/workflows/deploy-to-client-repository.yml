@@ -68,23 +68,13 @@ jobs:
             exit 1
           fi
 
-      - name: show TEAM_PAT length (masked)
-        run: |
-          if [ -z "${{ github.ref_name }}" ]; then
-            echo "TEAM_REPO_OWNER_PAT: NOT SET"
-          else
-            # print length of token (not the token itself)
-            len=$(printf "%s" "${{ github.ref_name }}" | wc -c)
-            echo "TEAM_REPO_OWNER_PAT length: $len"
-          fi
-
       - name: Checkout ${{ env.TEAM_REPO_NAME }} code
         uses: actions/checkout@v3
         with:
           persist-credentials: true
           fetch-depth: 0
           ref: ${{ env.TEAM_REPO_BRANCH }}
-          token: ${{ secrets.TEAM_REPO_OWNER_PAT }} # ✅ Use a PAT with access to team repo
+          token: ${{ env.TEAM_REPO_OWNER_PAT }} # ✅ Use a PAT with access to team repo
 
       - name: Setup Git Identity
         run: |
@@ -99,33 +89,6 @@ jobs:
             echo "And add CLIENT_REPO_OWNER and CLIENT_REPO_NAME as repository variables"
             exit 1
           fi
-
-      - name: Log environment variables (safe)
-        run: |
-          vars=(
-            TEAM_REPO_OWNER
-            TEAM_REPO_NAME
-            TEAM_REPO_BRANCH
-            AUTHORIZED_USERS_TO_RUN_WORKFLOW
-            TEAM_REPO_OWNER_PAT
-            CLIENT_REPO_COLLABORATOR_USER_NAME
-            CLIENT_REPO_COLLABORATOR_USER_EMAIL
-            CLIENT_REPO_COLLABORATOR_PAT
-            CLIENT_REPO_OWNER
-            CLIENT_REPO_NAME
-            CLIENT_REPO_BRANCH
-          )
-          echo "=== Environment variables status ==="
-          for v in "${vars[@]}"; do
-            val="${!v}"
-            if [ -z "$val" ]; then
-              echo "$v: NOT SET"
-            else
-              # do not print secret values — only show that they exist
-              echo "$v: SET"
-            fi
-          done
-          echo "===================================="
 
       - name: Clone ${{ env.CLIENT_REPO_NAME }} repository and sync code
         run: |
