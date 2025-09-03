@@ -28,6 +28,11 @@ jobs:
       CLIENT_REPO_BRANCH: ${{ secrets.CLIENT_REPO_BRANCH }}
 
     steps:
+      - name: Get current user and repository owner
+        id: user_info
+        run: |
+          echo "current_user=${{ github.actor }}" >> $GITHUB_OUTPUT
+          echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
 
       - name: Checkout ${{ env.TEAM_REPO_NAME }} code
         uses: actions/checkout@v3
